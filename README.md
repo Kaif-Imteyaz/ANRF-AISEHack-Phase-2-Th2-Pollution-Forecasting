@@ -1,7 +1,5 @@
-# ANRF AISEHack 2026 | Theme 2 | Pollution-Forecasting-IITD
-Scientific ML models that can accurately forecast short-term PM2.5 concentration fields over India.
-
-# Project tittle : India in the Haze - Country-Level PM2.5 Concentration Forecasting
+# ANRF AISEHack 2026 | Theme 2
+## Project tittle : India in the Haze - Country-Level PM2.5 Concentration Forecasting
 
 [![License: ANRF Open](https://img.shields.io/badge/License-ANRF%20Open-teal.svg)](./LICENSE)
 ![Score](https://img.shields.io/badge/Score-0.8675-green)
