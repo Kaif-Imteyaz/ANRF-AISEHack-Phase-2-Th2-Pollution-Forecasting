@@ -39,8 +39,9 @@ Output (B, 16, 140, 124)
 ## Key Contributions
 
 **Phase 2 Composite Loss** directly optimises all three evaluation metrics:
-- Global SMAPE (0.30) + Asymmetric Episode SMAPE (0.35) + Episode Correlation (0.20) + SSIM (0.10) + Huber (0.05)
+-Global SMAPE (0.30) + Episode SMAPE (0.25) + Episode Corr (0.20) + SSIM (0.10) + Temporal Gradient (0.08) + Huber (0.07)
 - Underprediction of PM2.5 spikes penalised 3× harder than overprediction
+
 
 **Physics-informed features** (26 channels): PM2.5 history, wind advection warp, persistence, met variables, emissions, divergence, diurnal encoding, lat/lon
 
