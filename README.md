@@ -1,7 +1,7 @@
-# ANRF AISEHack 2026 | Theme 2: PM2.5 Forecasting over India
+# ANRF AISEHack 2026 - Theme 2: PM2.5 Forecasting over India
 
-**Team:** Colab Survivors | Jamia Hamdard, New Delhi  
-**Leaderboard Score:** 0.8675 | **Baseline:** 0.7780  
+**Team:** Colab Survivors | Jamia Hamdard, New Delhi
+**Leaderboard Score:** 0.8675 | **Baseline:** 0.7780
 **Competition:** ANRF AISEHack 2026, IIIT Hyderabad
 
 ---
@@ -21,7 +21,14 @@ The dataset and competition are provided by ANRF (Anusandhan National Research F
 | Leaderboard Score | 0.7780 | **0.8675** |
 | Val RMSE (normalised) | ~0.48 | **0.2802** |
 | Val RMSE (µg/m³) | ~25.1 | **14.6** |
+| MAE (µg/m³) | --- | **6.66** |
+| MAPE (%) | --- | **47.25** |
+| R² | --- | **0.908** |
+| Pearson r | --- | **0.954** |
+| Skill Score (peak, h+9) | --- | **44.6%** |
 | Parameters | --- | 1,550,290 |
+
+All four US EPA PM2.5 model performance benchmarks (MFB, MFE, NMB, NME) are met at the Goal threshold.
 
 ---
 
@@ -37,9 +44,9 @@ The dataset and competition are provided by ANRF (Anusandhan National Research F
                 ┌───────────▼───────────┐
                 │     FRAME ENCODER     │
                 │  ┌─────────────────┐  │
-                │  │ Stage 1         │  │
-                │  │ ResConv block   │  │──── skip features ──┐
-                │  │ ChannelAttn     │  │    (B,10, 64,74,66) │
+                │  │ Stage 1         │  │──── skip features ──┐
+                │  │ ResConv block   │  │    (B,10, 64,74,66) │
+                │  │ ChannelAttn     │  │                     │
                 │  │ stride-2 conv   │  │                     │
                 │  └────────┬────────┘  │                     │
                 │  ┌────────▼────────┐  │                     │
@@ -52,17 +59,13 @@ The dataset and competition are provided by ANRF (Anusandhan National Research F
                             │ (B, 10, 128, 37, 33)            │
                 ┌───────────▼───────────┐                     │
                 │   TEMPORAL TRANSLATOR │                     │
-                │                       │                     │
-                │  10 history steps     │                     │
                 │  ┌─────────────────┐  │                     │
                 │  │ Gated Self-Attn │  │                     │
                 │  │   (8 heads ×2)  │  │                     │
                 │  └────────┬────────┘  │                     │
-                │           │           │                     │
                 │  ┌────────▼────────┐  │                     │
                 │  │ Cross-Attention │  │                     │
                 │  │   (8 heads ×2)  │  │                     │
-                │  │                 │  │                     │
                 │  │ 16 learnable    │  │                     │
                 │  │ query vectors   │  │                     │
                 │  │ (one per hour)  │  │                     │
@@ -72,13 +75,11 @@ The dataset and competition are provided by ANRF (Anusandhan National Research F
                 ┌───────────▼───────────┐                     │
                 │     FRAME DECODER     │                     │
                 │  ┌─────────────────┐  │                     │
-                │  │ TransposedConv1 │  │                     │
-                │  │    upsample     │◄─┼─────────────────────┘
+                │  │ TransposedConv1 │◄─┼─────────────────────┘
                 │  │  + skip fusion  │  │   skip connection
                 │  └────────┬────────┘  │
                 │  ┌────────▼────────┐  │
                 │  │ TransposedConv2 │  │
-                │  │    upsample     │  │
                 │  └────────┬────────┘  │
                 │  ┌────────▼────────┐  │
                 │  │  Dual 1×1 heads │  │
@@ -95,7 +96,7 @@ The dataset and competition are provided by ANRF (Anusandhan National Research F
   ŷ = h_main(x)  +  0.3 × h_aux(x)  +  0.1 × C_persist
 ```
 
-**Parameters:** 1,550,290  
+**Parameters:** 1,550,290
 **Training:** 80 epochs, best checkpoint at epoch 73
 
 ---
@@ -137,25 +138,11 @@ Remaining 16 channels: raw PM2.5, 8 meteorological variables, 7 emission tracers
 ```python
 Optimiser    : AdamW (lr=2e-4, weight_decay=1e-4)
 Batch size   : 4 (gradient accumulation x4 = effective 16)
-LR schedule  : 5-epoch warmup + cosine annealing (T0=40, Tmult=2)
+LR schedule  : 5-epoch warmup + cosine annealing (T0=30, Tmult=2)
 EMA decay    : 0.9995
 Epochs       : up to 80, patience 20
-TTA          : 16 passes (4 seasonal encodings x 4 spatial transforms)
+TTA          : 4-fold spatial (hflip, vflip, both, original)
 ```
-
----
-
-## Model Checkpoint
-
-Best checkpoint (`best_p2.pth`) is available on Kaggle:  
-[https://www.kaggle.com/datasets/kaifimtz/colab-survivors-pm2-5-phase-2-best-checkpoint](https://www.kaggle.com/datasets/kaifimtz/colab-survivors-pm2-5-phase-2-best-checkpoint)
-
----
-
-## Kaggle Notebook
-
-Inference notebook used for submission:  
-[https://www.kaggle.com/code/kaifimtz/preds-npy](https://www.kaggle.com/code/kaifimtz/preds-npy)
 
 ---
 
@@ -163,30 +150,44 @@ Inference notebook used for submission:
 
 | Attempt | Failure | Fix |
 |---------|---------|-----|
-| Larger model (BASE_CH 64→96) | No improvement, stopped at epoch 10 | Kept 64 channels |
-| T0=30 cosine restart | Training destabilised at convergence epoch | Changed to T0=40 |
-| Full DEC_16 holdout | Val RMSE stuck at 1.14 | Winter PM2.5 is 3-5x higher, needs joint training |
-| Spatial self-attention | Memory infeasible at 37x33 grid | Replaced with ChannelAttention |
+| Larger model (BASE_CH 64→96) | No improvement on 2352 training samples | Kept 64 channels |
+| Tighter restart (T0=20) | Training destabilised at convergence epoch | Kept T0=30 |
+| Full DEC_16 holdout | Val RMSE stuck at 1.14 | Winter PM2.5 is 3–5× higher, needs joint training |
+| Spatial self-attention | Memory infeasible at 37×33 grid | Replaced with ChannelAttention |
+| Huber loss only | Normalised RMSE >0.35 (+0.07 degradation) | Kept composite loss |
 
+---
+
+## Model Checkpoint
+
+Best checkpoint (`best_p2.pth`) available on Kaggle:
+[https://www.kaggle.com/datasets/kaifimtz/colab-survivors-pm2-5-phase-2-best-checkpoint](https://www.kaggle.com/datasets/kaifimtz/colab-survivors-pm2-5-phase-2-best-checkpoint)
+
+---
+
+## Kaggle Notebook
+
+Inference notebook used for submission:
+[https://www.kaggle.com/code/kaifimtz/preds-npy](https://www.kaggle.com/code/kaifimtz/preds-npy)
 
 ---
 
 ## Data
 
-Training and evaluation data (WRF-Chem PM2.5 simulations, 2016-2017) are provided by ANRF as part of AISEHack 2026 Theme 2. Data access is subject to ANRF competition terms.
+Training and evaluation data (WRF-Chem PM2.5 simulations, 2016–2017) are provided by ANRF as part of AISEHack 2026 Theme 2. Data access is subject to ANRF competition terms.
 
 ---
 
 ## GenAI Disclosure
 
 Claude (Anthropic) was used as an AI coding and writing assistant during development.
-[[link here](https://drive.google.com/file/d/14jao__bfAqc1WVS0-dwLOu4HGCIYejbx/view?usp=sharing)]
+[[Declaration](https://drive.google.com/file/d/14jao__bfAqc1WVS0-dwLOu4HGCIYejbx/view?usp=sharing)]
 
 ---
 
 ## License
+Developed as part of ANRF AISEHack 2026 (Theme 2).
+Copyright © 2026 The Authors
 
-ANRF Open License | Copyright © 2026 Colab Survivors  
-See [LICENSE](./LICENSE) for full terms.
-
+Licensed under the **ANRF Open License**. See [LICENSE](./LICENSE) for full terms. 
 This license is compatible with the MIT license under the global interoperability clause.
